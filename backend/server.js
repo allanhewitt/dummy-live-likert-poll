@@ -11,14 +11,16 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const app = express();
 app.use(express.json());
 
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
+const allowedOriginsRaw = (process.env.ALLOWED_ORIGINS || "*").trim();
+
+const corsOrigin =
+  allowedOriginsRaw === "*"
+    ? "*"
+    : allowedOriginsRaw.split(",").map((s) => s.trim()).filter(Boolean);
 
 app.use(
   cors({
-    origin: allowedOrigins.length > 0 ? allowedOrigins : "*",
+    origin: corsOrigin,
   })
 );
 
