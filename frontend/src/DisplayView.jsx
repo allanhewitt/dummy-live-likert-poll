@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { getCurrentQuestion, getQuestions, getResults } from "./api.js";
+import { useParams } from "react-router-dom";
+import { getQuestions, getResults } from "./api.js";
 
 const SCALE = ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"];
 
 export default function DisplayView() {
+  const { questionId } = useParams();
   const [questions, setQuestions] = useState([]);
-  const [currentQuestionId, setCurrentQuestionId] = useState(null);
   const [results, setResults] = useState([]);
 
   useEffect(() => {
@@ -13,16 +14,14 @@ export default function DisplayView() {
   }, []);
 
   useEffect(() => {
+    if (!questionId) {
+      setResults([]);
+      return;
+    }
     const poll = async () => {
       try {
-        const { currentQuestionId: liveId } = await getCurrentQuestion();
-        setCurrentQuestionId(liveId);
-        if (liveId) {
-          const data = await getResults(liveId);
-          setResults(data);
-        } else {
-          setResults([]);
-        }
+        const data = await getResults(questionId);
+        setResults(data);
       } catch (err) {
         console.error(err);
       }
@@ -30,16 +29,18 @@ export default function DisplayView() {
     poll();
     const interval = setInterval(poll, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [questionId]);
 
-  const currentQuestion = questions.find((q) => q.id === currentQuestionId);
+  const currentQuestion = questions.find((q) => q.id === questionId);
   const total = results.reduce((sum, r) => sum + r.count, 0);
   const maxCount = Math.max(...results.map((r) => r.count), 1);
 
-  if (!currentQuestion) {
+  if (!questionId || !currentQuestion) {
     return (
       <div style={styles.page}>
-        <p style={styles.idle}>No active question right now</p>
+        <p style={styles.idle}>
+          {!questionId ? "No question selected" : "That question could not be found"}
+        </p>
       </div>
     );
   }

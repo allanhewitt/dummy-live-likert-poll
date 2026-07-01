@@ -9,22 +9,6 @@ export async function getQuestions() {
   return res.json();
 }
 
-export async function getCurrentQuestion() {
-  const res = await fetch(`${API_BASE}/session/current`);
-  if (!res.ok) throw new Error("Failed to fetch current question");
-  return res.json();
-}
-
-export async function setCurrentQuestion(questionId) {
-  const res = await fetch(`${API_BASE}/session/current`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ questionId }),
-  });
-  if (!res.ok) throw new Error("Failed to set current question");
-  return res.json();
-}
-
 export async function submitResponse(questionId, value) {
   const res = await fetch(`${API_BASE}/respond`, {
     method: "POST",

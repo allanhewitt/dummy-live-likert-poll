@@ -1,51 +1,38 @@
 import { useState, useEffect } from "react";
-import { getCurrentQuestion, getQuestions, submitResponse, getResults } from "./api.js";
+import { useParams } from "react-router-dom";
+import { getQuestions, submitResponse, getResults } from "./api.js";
 
 const SCALE = ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"];
 
 export default function RespondView() {
+  const { questionId } = useParams();
   const [questions, setQuestions] = useState([]);
-  const [currentQuestionId, setCurrentQuestionId] = useState(null);
   const [selected, setSelected] = useState(null);
   const [submitted, setSubmitted] = useState(false);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Load the question list once.
   useEffect(() => {
-    getQuestions().then(setQuestions).catch(console.error);
+    getQuestions()
+      .then(setQuestions)
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
 
-  // Poll for which question is currently live.
+  // Reset local state whenever the question changes (i.e. a different link was clicked)
   useEffect(() => {
-    const poll = async () => {
-      try {
-        const { currentQuestionId: liveId } = await getCurrentQuestion();
-        setCurrentQuestionId((prev) => {
-          if (prev !== liveId) {
-            setSelected(null);
-            setSubmitted(false);
-          }
-          return liveId;
-        });
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    poll();
-    const interval = setInterval(poll, 3000);
-    return () => clearInterval(interval);
-  }, []);
+    setSelected(null);
+    setSubmitted(false);
+    setResults([]);
+  }, [questionId]);
 
-  const currentQuestion = questions.find((q) => q.id === currentQuestionId);
+  const currentQuestion = questions.find((q) => q.id === questionId);
 
   const handleSubmit = async () => {
-    if (!selected || !currentQuestionId) return;
+    if (!selected || !questionId) return;
     try {
-      await submitResponse(currentQuestionId, selected);
-      const data = await getResults(currentQuestionId);
+      await submitResponse(questionId, selected);
+      const data = await getResults(questionId);
       setResults(data);
       setSubmitted(true);
     } catch (err) {
@@ -57,11 +44,15 @@ export default function RespondView() {
     return <div style={styles.page}><p style={styles.idle}>Loading…</p></div>;
   }
 
-  if (!currentQuestion) {
+  if (!questionId || !currentQuestion) {
     return (
       <div style={styles.page}>
         <div style={styles.card}>
-          <p style={styles.idle}>No active question right now.</p>
+          <p style={styles.idle}>
+            {!questionId
+              ? "No question selected. Use the link provided in your lecture slides."
+              : "That question could not be found."}
+          </p>
         </div>
       </div>
     );
